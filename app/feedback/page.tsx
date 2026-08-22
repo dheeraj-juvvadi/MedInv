@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
-import React, { useEffect, useState } from 'react'; // Import React hooks
+import { useEffect, useMemo, useState } from 'react';
 import { AppLayout } from "@/components/app-layout"; // Import AppLayout component
+import { exportRowsToCsv } from '@/lib/export';
 
 // Define interface based on API response
 interface FeedbackInfo {
@@ -27,6 +28,30 @@ interface FeedbackInfo {
 const FeedbackPage = () => { // Changed to arrow function
   const [feedbacks, setFeedbacks] = useState<FeedbackInfo[] | null>(null); // State for fetched data
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredFeedbacks = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return (feedbacks ?? []).filter((feedback) => [feedback.patient_name, feedback.title, feedback.description].some((value) => value?.toLowerCase().includes(query)));
+  }, [feedbacks, searchTerm]);
+
+  const loadFeedbacks = async () => {
+    setError(null);
+    setFeedbacks(null);
+    try {
+      const response = await fetch('/api/feedback', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to fetch feedback data: ${response.statusText}`);
+      const data: FeedbackInfo[] = await response.json();
+      setFeedbacks(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setFeedbacks([]);
+    }
+  };
+
+  useEffect(() => {
+    loadFeedbacks();
+  }, []);
 
   useEffect(() => {
     async function fetchFeedbackData() {
@@ -78,17 +103,16 @@ const FeedbackPage = () => { // Changed to arrow function
     <AppLayout>
       <DashboardShell>
         <DashboardHeader heading="Feedback" text="View and manage patient feedback.">
-          <Button variant="outline">Generate Report</Button>
+          <Button variant="outline" onClick={() => exportRowsToCsv('medinv-feedback-report.csv', filteredFeedbacks)} disabled={!filteredFeedbacks.length}>Generate Report</Button>
         </DashboardHeader>
         <Card className="backdrop-blur-sm bg-card/50">
           <CardContent className="p-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Search feedback..." className="pl-8 bg-background" />
+                <Input type="search" placeholder="Search feedback..." className="pl-8 bg-background" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
               </div>
-              <Button variant="outline">Filter</Button>
-              <Button variant="outline">Export</Button>
+              <Button variant="outline" onClick={() => exportRowsToCsv('medinv-feedback.csv', filteredFeedbacks)} disabled={!filteredFeedbacks.length}>Export</Button>
             </div>
             {error && <p className="text-red-500 mb-4">Error: {error}</p>}
             {feedbacks === null && <p>Loading feedback...</p>}
@@ -107,7 +131,7 @@ const FeedbackPage = () => { // Changed to arrow function
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {feedbacks.map((feedback) => (
+                  {filteredFeedbacks.map((feedback) => (
                     <TableRow key={feedback.feedback_id}>
                       <TableCell className="font-medium">{feedback.feedback_id}</TableCell>
                       <TableCell>{feedback.patient_name || 'Anonymous'}</TableCell>

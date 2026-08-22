@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search } from "lucide-react";
-import React, { useEffect, useState } from 'react'; // Import React hooks
+import { useEffect, useMemo, useState } from 'react';
 import { AppLayout } from "@/components/app-layout"; // Import AppLayout
+import { exportRowsToCsv } from '@/lib/export';
 
 // Define interface based on API response
 interface EmployeeInfo {
@@ -24,37 +25,35 @@ interface EmployeeInfo {
 }
 
 const EmployeesPage = () => { // Changed to arrow function
-  const [employees, setEmployees] = useState<EmployeeInfo[] | null>(null); // State for fetched data
+  const [employees, setEmployees] = useState<EmployeeInfo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredEmployees = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return (employees ?? []).filter((employee) =>
+      [employee.name, employee.role, employee.email, employee.phone_number]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)),
+    );
+  }, [employees, searchTerm]);
+
+  const loadEmployees = async () => {
+    setError(null);
+    setEmployees(null);
+    try {
+      const response = await fetch('/api/employees', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to fetch employee data: ${response.statusText}`);
+      const data: EmployeeInfo[] = await response.json();
+      setEmployees(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setEmployees([]);
+    }
+  };
 
   useEffect(() => {
-    async function fetchEmployeeData() {
-      setError(null);
-      try {
-        const response = await fetch('/api/employees');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch employee data: ${response.statusText}`);
-        }
-        const data: EmployeeInfo[] = await response.json();
-        if (Array.isArray(data)) {
-          // Add placeholder status
-          const processedData = data.map(item => ({
-            ...item,
-            status: 'Active' as const // Placeholder status, assume active for now
-          }));
-          setEmployees(processedData);
-        } else {
-          console.error("Received non-array data for employees:", data);
-          setEmployees([]);
-        }
-      } catch (err) {
-        console.error(err);
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
-        setEmployees([]);
-      }
-    }
-
-    fetchEmployeeData();
+    loadEmployees();
   }, []);
 
   // Function to determine badge color based on status (can be expanded)
@@ -73,25 +72,24 @@ const EmployeesPage = () => { // Changed to arrow function
     <AppLayout>
       <DashboardShell>
         <DashboardHeader heading="Employees" text="View and manage employee records.">
-          <Button>
+          <Button disabled title="Employee creation requires an API endpoint">
             <Plus className="mr-2 h-4 w-4" />
             Add Employee
           </Button>
+          <Button variant="outline" onClick={loadEmployees}>Refresh</Button>
         </DashboardHeader>
         <Card className="backdrop-blur-sm bg-card/50">
           <CardContent className="p-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input type="search" placeholder="Search employees..." className="pl-8 bg-background" />
+                <Input type="search" placeholder="Search employees..." className="pl-8 bg-background" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
               </div>
-              <Button variant="outline">Filter</Button>
-              <Button variant="outline">Export</Button>
+              <Button variant="outline" onClick={() => exportRowsToCsv('medinv-employees.csv', filteredEmployees)} disabled={!filteredEmployees.length}>Export</Button>
             </div>
             {error && <p className="text-red-500 mb-4">Error: {error}</p>}
             {employees === null && <p>Loading employees...</p>}
-            {employees !== null && employees.length === 0 && !error && <p>No employees found.</p>}
-            {employees !== null && employees.length > 0 && (
+            {employees !== null && !error && (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -105,7 +103,7 @@ const EmployeesPage = () => { // Changed to arrow function
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employees.map((employee) => (
+                  {(filteredEmployees.length ? filteredEmployees : []).map((employee) => (
                     <TableRow key={employee.employee_id}>
                       <TableCell className="font-medium">{employee.employee_id}</TableCell>
                       <TableCell>{employee.name}</TableCell>
@@ -124,6 +122,9 @@ const EmployeesPage = () => { // Changed to arrow function
                     </TableRow>
                   ))}
                 </TableBody>
+                {!filteredEmployees.length && (
+                  <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">No matching employees.</TableCell></TableRow>
+                )}
               </Table>
             )}
           </CardContent>

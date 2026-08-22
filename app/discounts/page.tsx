@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search } from "lucide-react";
-import React, { useEffect, useState } from 'react'; // Import React hooks
+import { useEffect, useMemo, useState } from 'react';
 import { AppLayout } from "@/components/app-layout";
+import { exportRowsToCsv } from '@/lib/export';
 
 // Define interface based on API response
 interface DiscountInfo {
@@ -26,6 +27,30 @@ interface DiscountInfo {
 const DiscountsPage = () => { // Changed to arrow function
   const [discounts, setDiscounts] = useState<DiscountInfo[] | null>(null); // State for fetched data
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredDiscounts = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return (discounts ?? []).filter((discount) => [discount.name, discount.description, discount.status].some((value) => value?.toLowerCase().includes(query)));
+  }, [discounts, searchTerm]);
+
+  const loadDiscounts = async () => {
+    setError(null);
+    setDiscounts(null);
+    try {
+      const response = await fetch('/api/discounts', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to fetch discount data: ${response.statusText}`);
+      const data: DiscountInfo[] = await response.json();
+      setDiscounts(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setDiscounts([]);
+    }
+  };
+
+  useEffect(() => {
+    loadDiscounts();
+  }, []);
 
   useEffect(() => {
     async function fetchDiscountData() {
@@ -97,7 +122,7 @@ const DiscountsPage = () => { // Changed to arrow function
     <AppLayout>
       <DashboardShell>
       <DashboardHeader heading="Discounts" text="View and manage discount programs.">
-        <Button>
+        <Button disabled title="Discount creation requires an API endpoint">
           <Plus className="mr-2 h-4 w-4" />
           Add Discount
         </Button>
@@ -107,10 +132,9 @@ const DiscountsPage = () => { // Changed to arrow function
           <div className="flex items-center gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input type="search" placeholder="Search discounts..." className="pl-8 bg-background" />
+              <Input type="search" placeholder="Search discounts..." className="pl-8 bg-background" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
             </div>
-            <Button variant="outline">Filter</Button>
-            <Button variant="outline">Export</Button>
+            <Button variant="outline" onClick={() => exportRowsToCsv('medinv-discounts.csv', filteredDiscounts)} disabled={!filteredDiscounts.length}>Export</Button>
           </div>
           {error && <p className="text-red-500 mb-4">Error: {error}</p>}
           {discounts === null && <p>Loading discounts...</p>}
@@ -129,7 +153,7 @@ const DiscountsPage = () => { // Changed to arrow function
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {discounts.map((discount) => (
+                {filteredDiscounts.map((discount) => (
                   <TableRow key={discount.discount_id}>
                     <TableCell className="font-medium">{discount.discount_id}</TableCell>
                     <TableCell>{discount.name}</TableCell>

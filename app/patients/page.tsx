@@ -203,7 +203,7 @@ export default function PatientsPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete the patient "{patient.name}".
+                                  This action cannot be undone. This will permanently delete the patient &quot;{patient.name}&quot;.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

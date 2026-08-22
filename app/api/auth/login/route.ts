@@ -7,20 +7,21 @@ export async function POST(req: NextRequest) {
   try {
     const { username, password } = await req.json();
 
-    if (!username || !password) {
+    if (typeof username !== 'string' || typeof password !== 'string' || !username.trim() || !password) {
       return NextResponse.json({ message: 'Username and password are required' }, { status: 400 });
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return NextResponse.json({ message: 'Authentication is not configured' }, { status: 503 });
     }
 
     // Find the staff account by username
     // Select only existing columns
-    const query = 'SELECT username, password, employee_id FROM StaffAccount WHERE username = ?';
-    console.log(`[Login] Attempting login for user: ${username} in mode: ${getCurrentDeploymentMode()}`);
+    const query = 'SELECT username, password, employee_id FROM StaffAccount WHERE username = ? LIMIT 1';
     
     const users = await executeQuery<any[]>(query, [username]);
-    console.log(`[Login] Query result:`, users);
-
     if (users.length === 0) {
-      console.log(`[Login] User not found: ${username}`);
       return NextResponse.json({ message: 'Invalid username or password' }, { status: 401 }); // User not found
     }
 
@@ -50,8 +51,6 @@ export async function POST(req: NextRequest) {
     // --- End Password Verification ---
 
     // --- Session/Token Generation ---
-    // IMPORTANT: Use a strong, secret key stored securely (e.g., environment variable)
-    const JWT_SECRET = process.env.JWT_SECRET || 'YOUR_VERY_SECRET_KEY_REPLACE_ME'; // Replace with env var
     const expiresIn = '1h'; // Token expiration time
 
     const payload = {
@@ -61,7 +60,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Sign the token
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn });
+    const token = jwt.sign(payload, jwtSecret, { expiresIn: 60 * 60 });
 
     // Prepare response
     const { password: _, ...userInfo } = user; // Exclude password from response data
@@ -79,8 +78,7 @@ export async function POST(req: NextRequest) {
 
     return response;
 
-  } catch (error) {
-    console.error('Login API error:', error);
+  } catch {
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

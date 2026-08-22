@@ -199,7 +199,7 @@ export default function SuppliersPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete the supplier "{sup.name}".
+                                  This action cannot be undone. This will permanently delete the supplier &quot;{sup.name}&quot;.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
