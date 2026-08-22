@@ -201,7 +201,7 @@ export default function StaffAccountsPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete the account "{acc.username || 'Unknown User'}".
+                                  This action cannot be undone. This will permanently delete the account &quot;{acc.username || 'Unknown User'}&quot;.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

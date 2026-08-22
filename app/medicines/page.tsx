@@ -224,7 +224,7 @@ export default function MedicinesPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete the medicine "{med.name}".
+                                  This action cannot be undone. This will permanently delete the medicine &quot;{med.name}&quot;.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

@@ -16,7 +16,7 @@ export function DashboardShell({
   return (
     <div
       className={cn(
-        "flex flex-col w-full h-full",
+        "clinical-shell flex w-full flex-col",
         isMobile ? "gap-4" : "gap-6",
         className
       )}

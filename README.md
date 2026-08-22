@@ -1,217 +1,76 @@
-# MedInv - Medical Inventory Management System
+# MedInv
 
-MedInv is a comprehensive web application for managing medical inventory, patients, orders, and more. Built with Next.js, React, TypeScript, and MySQL.
-
-**100% FREE TO DEPLOY** - This application can be fully deployed for free using Vercel's Hobby plan and PlanetScale's free tier without requiring any credit card or paid subscriptions.
-
-## Table of Contents
-
-- [Features](#features)
-- [Deployment Options](#deployment-options)
-- [Local Setup](#local-setup)
-- [Vercel Deployment](#vercel-deployment)
-- [Database Configuration](#database-configuration)
-- [Environment Variables](#environment-variables)
-- [Project Structure](#project-structure)
-- [API Endpoints](#api-endpoints)
-- [Technologies Used](#technologies-used)
-- [Contributing](#contributing)
+MedInv is a medical inventory management application for medicines, stock, patients, suppliers, orders, billing, expiry monitoring, and clinical reporting. It runs on Next.js App Router, React 18, TypeScript, Tailwind CSS, and a deployment-aware MySQL or in-memory demo database.
 
 ## Features
 
-- Dashboard with key metrics and inventory summary
-- Patient management system
-- Medicine and inventory tracking
-- Order management
-- Medical logs and patient history
-- Expiry alerts and notifications
-- Analytics and reporting
-- Role-based access control
-- **Fully Responsive Design** - Optimized for mobile, tablet, and desktop devices with touch-friendly controls
+- Dashboard with live key indicators, refresh, CSV export, order overview, activity, and inventory distribution.
+- Medicine, inventory, patient, supplier, drug category, and staff account CRUD workflows.
+- Order creation and inventory adjustment dialogs with server-side validation and conflict handling.
+- Expiry alerts, analytics, billing, feedback, employee, discount, prescription, and medical-log views.
+- Search, filtering, loading, empty, retry, and API-error states.
+- CSV export for dashboard indicators, employees, billing, discounts, feedback, and prescriptions.
+- JWT session cookies, middleware route protection, and explicit authentication configuration failures.
+- Responsive navigation with mobile overlay, 44-pixel touch targets, keyboard focus states, and reduced-motion support.
+- Distinct clinical design language using Sora, Archivo Black, IBM Plex Mono, layered gradients, and a fixed grid.
 
-## Responsive Mobile-First Design
+## Local Development
 
-MedInv features a comprehensive responsive web interface that provides an optimal viewing experience across all devices:
-
-### Mobile Optimization
-- **Touch-Friendly Controls**: All interactive elements meet WCAG 2.1 guidelines with minimum 44x44px tap targets
-- **Hamburger Menu**: Collapsible sidebar with smooth slide-in animation and overlay
-- **Responsive Tables**: Horizontal scroll with touch-optimized scrolling for data tables
-- **Adaptive Typography**: Readable font sizes (16px minimum) without requiring zoom
-- **Optimized Layouts**: Content reflows naturally on smaller screens
-
-### Tablet & Desktop Features
-- **Auto-Expanding Sidebar**: Hover to expand on desktop, manual toggle on tablet
-- **Flexible Grid Layouts**: Automatically adjusts columns based on screen size
-- **Enhanced Interactions**: Hover states and mouse-based interactions preserved
-- **Maximum Content Width**: Centered layout on large screens (1280px max)
-
-### Progressive Enhancement
-- Core functionality works universally across all devices
-- Enhanced features activate based on device capabilities
-- CSS-based responsive design (no JavaScript required for layout)
-- Hardware-accelerated animations for smooth performance
-
-### Breakpoint System
-- **Mobile**: < 768px (1 column layouts, stacked navigation)
-- **Tablet**: 768px - 1023px (2 column layouts, collapsible sidebar)
-- **Desktop**: ≥ 1024px (3-4 column layouts, full sidebar)
-
-## Deployment Options
-
-MedInv can be deployed in three main configurations:
-
-1. **Local Development Mode**: Uses a local MySQL database
-2. **Vercel Deployment with PlanetScale**: Uses PlanetScale or other cloud MySQL providers
-3. **Demo Mode**: Uses an in-memory database that resets on page refresh, requiring no database setup
-
-The application automatically detects the environment and connects to the appropriate database based on environment variables.
-
-### Demo Mode
-
-Demo mode is ideal for:
-- Testing the application without setting up a database
-- Free-tier deployments
-- Showcasing the application to clients or users
-
-In demo mode:
-- All data is stored in memory and resets on page refresh
-- The application uses a predefined set of sample data
-- No database connection is required
-- Authentication is simplified for demonstration purposes
-
-To enable demo mode, set the following environment variables:
-```
-DEPLOYMENT_MODE=demo
-NEXT_PUBLIC_DEPLOYMENT_MODE=demo
+```bash
+npm install
+npm run dev
 ```
 
-## Local Setup
+Open `http://localhost:3000`.
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd MedInv
-   ```
+Set `JWT_SECRET` in `.env.local`. Without it, protected routes return a configuration error instead of falling back to an insecure secret.
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
+Copy [.env.example](.env.example) as the starting point. It documents demo, local MySQL, Supabase notification, and public deployment-mode variables.
 
-3. **Set up a local MySQL database**
-   - Install MySQL locally
-   - Create a new database named `test2` (or your preferred name)
-   - Use the SQL schema in `db-schema.md` to create the required tables
+### Database Modes
 
-4. **Configure environment variables**
-   - Copy `.env.example` to `.env.local`
-   - Update the database credentials to match your local MySQL setup
-   ```
-   DB_HOST=localhost
-   DB_USER=root
-   DB_PASSWORD=your_password
-   DB_NAME=test2
-   DEPLOYMENT_MODE=local
-   ```
+- `DEPLOYMENT_MODE=demo` uses an in-memory database and resets on server restart.
+- `DEPLOYMENT_MODE=local` uses `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, and optional `DB_PORT`.
+- Cloud MySQL providers use the same variables through the deployment configuration.
 
-5. **Run migrations and seed data**
-   - Use the SQL commands in `db-schema.md` to populate initial test data
+The demo login is `admin` / `admin123`. Replace demo credentials and configure a production staff account before public deployment.
 
-6. **Start the development server**
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
+## Commands
 
-7. **Access the application**
-   - Open [http://localhost:3000](http://localhost:3000) in your browser
-
-## Database Configuration
-
-The application is designed to work with local MySQL, cloud database providers like PlanetScale, or in a database-free demo mode. The database connection is managed through the `lib/mysql.ts` file, which determines the connection method based on environment variables.
-
-### Switching Between Deployment Modes
-
-1. To use a local MySQL database:
-   - Set `DEPLOYMENT_MODE=local` in your .env file
-   - Configure the DB_* variables for your local MySQL instance
-
-2. To use PlanetScale or other cloud MySQL providers:
-   - Set `DEPLOYMENT_MODE=planetscale` in your .env file
-   - Set `DATABASE_URL` to your cloud MySQL connection string
-
-3. To use the demo mode (no database required):
-   - Set `DEPLOYMENT_MODE=demo` in your .env file
-   - No database configuration needed
-   - Perfect for quick demonstrations or testing
-   - Data resets when the page refreshes
-
-## Environment Variables
-
-| Variable | Description | Default |
-|-------------|-------------|---------|
-| DEPLOYMENT_MODE | `local` for local DB, `planetscale` for cloud DB, `demo` for in-memory DB | `local` |
-| DB_HOST | MySQL host for local deployment | `localhost` |
-| DB_USER | MySQL username for local deployment | `root` |
-| DB_PASSWORD | MySQL password for local deployment | `` |
-| DB_NAME | MySQL database name for local deployment | `test2` |
-| DB_PORT | MySQL port for local deployment | `3306` |
-| DATABASE_URL | Full connection URL for PlanetScale/cloud DB | - |
-
-## Project Structure
-
-```
-MedInv/
-├── app/               # Next.js app directory
-│   ├── api/           # API routes
-│   ├── (dashboard)/   # Dashboard routes
-├── components/        # React components
-│   ├── ui/            # Reusable UI components
-├── context/           # React context providers
-├── hooks/             # Custom React hooks
-├── lib/               # Utility libraries
-│   ├── mysql.ts       # Database connection logic
-├── public/            # Static assets
-├── styles/            # Global styles
-├── types/             # TypeScript types
+```bash
+npm run test
+npm run build
+npm run lint
+npm run setup-db
 ```
 
-## API Endpoints
+Tests use Vitest and jsdom. The production build uses the in-memory database automatically when no database credentials are present.
 
-The application includes RESTful API endpoints for all major resources:
+## API Surface
 
-- `/api/patients` - Patient management
-- `/api/medicines` - Medicine management
-- `/api/inventory` - Inventory tracking
-- `/api/orders` - Order processing
-- `/api/medical-logs` - Medical logs and history
-- `/api/dashboard` - Dashboard statistics and metrics
+Core routes include:
 
-## Technologies Used
+- `POST /api/auth/login`
+- `GET /api/dashboard/key-stats`
+- `GET|POST|PUT|DELETE /api/medicines`
+- `GET|POST|PUT|DELETE /api/inventory`
+- `GET|POST|PUT|DELETE /api/patients`
+- `GET|POST|PUT|DELETE /api/suppliers`
+- `GET|POST|PUT|DELETE /api/drug-categories`
+- `GET|POST|PUT|DELETE /api/staff-accounts`
+- `GET|POST /api/orders`
+- `GET /api/expiry-alerts`
+- `GET /api/billing`
+- `GET /api/analytics/top-medicines`
+- `GET /api/analytics/inventory-turnover`
 
-- **Frontend**: React, Next.js, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, Node.js
-- **Database**: MySQL (local) / PlanetScale (cloud)
-- **Deployment**: Vercel
+Read-only operational views are available for employees, discounts, feedback, prescriptions, medical logs, activity, deployment mode, and database exploration.
 
-## Switching Between Deployment Modes
+## Deployment
 
-To switch the application between local and cloud database modes:
+```bash
+npm run build
+npm start
+```
 
-1. Update the `DEPLOYMENT_MODE` environment variable:
-   - `local` for local MySQL database
-   - `planetscale` for cloud MySQL database
-
-2. When switching to `planetscale` mode, ensure the `DATABASE_URL` environment variable is correctly set.
-
-3. When switching to `local` mode, ensure the `DB_*` environment variables are configured for your local MySQL instance.
-
-The application reads these environment variables at runtime to determine how to connect to the database. This allows you to easily switch between development and production environments.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+For Vercel, set `DEPLOYMENT_MODE`, `JWT_SECRET`, `NEXT_PUBLIC_DEPLOYMENT_MODE`, and database credentials as encrypted project environment variables. Use a reachable MySQL provider for persistent deployments; Vercel serverless functions do not provide persistent local disk state.

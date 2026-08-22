@@ -199,7 +199,7 @@ export default function DrugCategoriesPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently delete the category "{cat.drug_category_name}". Deleting a category might fail if it's currently assigned to medicines.
+                                  This action cannot be undone. This will permanently delete the category &quot;{cat.drug_category_name}&quot;. Deleting a category might fail if it&apos;s currently assigned to medicines.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

@@ -107,7 +107,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <div className="min-h-screen bg-background font-sans antialiased">
+      <div className="clinical-shell min-h-screen bg-background font-sans antialiased">
         {isLoading ? (
           <PageLoader />
         ) : (

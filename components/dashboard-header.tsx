@@ -24,10 +24,11 @@ export function DashboardHeader({
   const showHeading = !hideTitleOnCollapsed || pathname !== '/';
   
   return (
-    <div className="flex items-center justify-between pb-6 border-b border-border/40 mb-6">
+    <div className="mb-7 flex flex-col gap-5 border-b border-border/40 pb-6 md:flex-row md:items-end md:justify-between">
       {showHeading && (
         <div className="grid gap-1">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <p className="eyebrow-label mb-2">MedInv Control</p>
+          <h1 className="font-display text-[clamp(2.1rem,5vw,3.4rem)] leading-[0.9] tracking-tight text-foreground">
             {heading}
           </h1>
           {text && (
@@ -37,11 +38,10 @@ export function DashboardHeader({
           )}
         </div>
       )}
-      <div className={cn("flex items-center gap-4", !showHeading && "ml-auto")}>
+      <div className={cn("flex flex-wrap items-center gap-3", !showHeading && "ml-auto")}>
         <DeploymentModeIndicator />
         {children}
       </div>
     </div>
   );
 }
-

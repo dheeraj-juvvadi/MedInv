@@ -47,15 +47,14 @@ export default function LoginPage() {
       });
       
       // Redirect to the main dashboard after successful login
-      router.push('/'); 
+      router.replace('/');
 
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.message || 'An unexpected error occurred.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
       toast({ 
         variant: "destructive", 
         title: "Authentication Failed", 
-        description: err.message || "Please check your credentials and try again." 
+        description: err instanceof Error ? err.message : "Please check your credentials and try again.",
       });
     } finally {
       setIsLoading(false);

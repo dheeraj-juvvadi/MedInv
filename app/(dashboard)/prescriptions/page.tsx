@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search } from "lucide-react";
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { exportRowsToCsv } from '@/lib/export';
 
 // Define interface based on API response
 interface PrescriptionInfo {
@@ -113,14 +114,13 @@ const PrescriptionsPage = () => {
                 onChange={(e) => setFilterTerm(e.target.value)} // Update filterTerm state
               />
             </div>
-            <Button variant="outline">Filter</Button> {/* Filter button might need separate logic */}
-            <Button variant="outline">Export</Button>
+            <Button variant="outline" onClick={() => exportRowsToCsv('medinv-prescriptions.csv', filteredPrescriptions ?? [])} disabled={!filteredPrescriptions?.length}>Export</Button>
           </div>
           {error && <p className="text-red-500 mb-4">Error: {error}</p>}
           {/* Update loading/empty states to use filteredPrescriptions */}
           {filteredPrescriptions === null && <p>Loading prescriptions...</p>} 
           {filteredPrescriptions !== null && filteredPrescriptions.length === 0 && !error && (
-            filterTerm ? <p>No prescriptions found matching "{filterTerm}".</p> : <p>No prescriptions found.</p>
+            filterTerm ? <p>No prescriptions found matching &quot;{filterTerm}&quot;.</p> : <p>No prescriptions found.</p>
           )}
           {filteredPrescriptions !== null && filteredPrescriptions.length > 0 && (
             <Table>

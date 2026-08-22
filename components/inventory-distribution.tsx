@@ -315,7 +315,7 @@ export function InventoryDistribution({ className }: InventoryDistributionProps)
                     <div className="flex items-center gap-2">
                       <div 
                         className="w-2.5 h-2.5 rounded-full ring-2 ring-offset-2 ring-offset-card" 
-                        style={{ backgroundColor: item.color, --tw-ring-color: item.color } as React.CSSProperties}
+                        style={{ backgroundColor: item.color, "--tw-ring-color": item.color } as React.CSSProperties}
                       />
                       <span className="font-medium text-sm text-foreground">
                         {item.name}

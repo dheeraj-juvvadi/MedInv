@@ -373,7 +373,7 @@ export function DatabaseExplorer({ initialSelectedTable }: { initialSelectedTabl
                     ))
                   ) : (
                     <div className="text-center py-4 text-sm text-muted-foreground">
-                      No tables found matching "{tableSearchTerm}"
+                      No tables found matching &quot;{tableSearchTerm}&quot;
                     </div>
                   )}
                 </div>

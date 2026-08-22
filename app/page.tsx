@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
@@ -56,6 +56,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MedicineForm } from "@/components/medicine-form";
 import { SupplierForm } from "@/components/supplier-form";
 import { InventoryForm } from "@/components/inventory-form";
+import { exportRowsToCsv } from "@/lib/export";
 
 // Interface for the fetched key stats
 interface KeyStat {
@@ -242,21 +243,24 @@ export default function DashboardPage() {
   ];
 
   // Refresh data
-  const refreshData = () => {
+  const refreshData = async () => {
     setRefreshing(true);
-    toast({
-      title: "Refreshing dashboard data",
-      description: "Fetching the latest information from the database",
-    });
-
-    setTimeout(() => {
-      setRefreshing(false);
+    try {
+      await fetchKeyStats();
       toast({
         title: "Dashboard updated",
-        description: "All data has been refreshed with the latest information",
+        description: "The latest inventory indicators are now loaded.",
         variant: "success",
       });
-    }, 1500);
+    } catch {
+      toast({
+        title: "Refresh failed",
+        description: "Please check the connection and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Handle form success
@@ -264,33 +268,29 @@ export default function DashboardPage() {
     refreshData();
   };
 
-  useEffect(() => {
-    async function fetchKeyStats() {
-      setStatsLoading(true);
-      setStatsError(null);
-      try {
-        const response = await fetch("/api/dashboard/key-stats");
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.error || `Failed to fetch key stats: ${response.statusText}`
-          );
-        }
-        const data: DashboardKeyStats = await response.json();
-        setDashboardStats(data);
-      } catch (err) {
-        console.error("Error fetching key stats:", err);
-        setStatsError(
-          err instanceof Error ? err.message : "An unknown error occurred"
-        );
-        setDashboardStats(null);
-      } finally {
-        setStatsLoading(false);
+  const fetchKeyStats = useCallback(async () => {
+    setStatsLoading(true);
+    setStatsError(null);
+    try {
+      const response = await fetch("/api/dashboard/key-stats", { cache: "no-store" });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Failed to fetch key stats: ${response.statusText}`);
       }
+      const data: DashboardKeyStats = await response.json();
+      setDashboardStats(data);
+    } catch (err) {
+      setStatsError(err instanceof Error ? err.message : "An unknown error occurred");
+      setDashboardStats(null);
+      throw err;
+    } finally {
+      setStatsLoading(false);
     }
+  }, []);
 
-    fetchKeyStats();
-  }, [refreshing]);
+  useEffect(() => {
+    fetchKeyStats().catch(() => {});
+  }, [fetchKeyStats]);
 
   useEffect(() => {
     // Simulate loading
@@ -337,7 +337,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
             <p className="text-muted-foreground text-sm">
-              Welcome back! Here's your pharmacy inventory overview for April 30,
+              Welcome back! Here&apos;s your pharmacy inventory overview for April 30,
               2025
             </p>
           </div>
@@ -346,10 +346,11 @@ export default function DashboardPage() {
               variant="outline"
               size="sm"
               className={cn("gap-1", dashboardView === "appHub" ? "bg-muted" : "")}
+              aria-pressed={dashboardView === "appHub"}
               onClick={() => setDashboardView("appHub")}
             >
               <Database size={14} />
-              App Hub
+              {dashboardView === "appHub" ? "Dashboard" : "App Hub"}
             </Button>
             <Button
               variant="outline"
@@ -365,7 +366,21 @@ export default function DashboardPage() {
               )}
               {refreshing ? "Refreshing..." : "Refresh"}
             </Button>
-            <Button variant="default" size="sm" className="gap-1">
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-1"
+              onClick={() =>
+                exportRowsToCsv("medinv-key-indicators.csv", Object.entries(dashboardStats ?? {}).map(
+                  ([indicator, value]) => ({
+                    indicator,
+                    value: value.value,
+                    change: value.changeDisplay,
+                  }),
+                ))
+              }
+              disabled={!dashboardStats}
+            >
               <Download size={14} />
               Export
             </Button>
@@ -597,9 +612,7 @@ export default function DashboardPage() {
                             variant="outline"
                             size="sm"
                             className="w-full"
-                            onClick={() =>
-                              router.push("/inventory?filter=low-stock")
-                            }
+                            onClick={() => router.push("/inventory")}
                           >
                             Order More Stock
                           </Button>
@@ -794,7 +807,7 @@ export default function DashboardPage() {
                           size="sm"
                           className="w-full"
                           onClick={() =>
-                            router.push("/inventory?filter=low-stock")
+                            router.push("/inventory")
                           }
                         >
                           Manage Inventory

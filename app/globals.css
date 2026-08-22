@@ -2,6 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes medinv-spinner-rotate { to { transform: rotate(360deg); } }
+@keyframes medinv-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid rgba(234, 179, 8, 0.25);
+  border-top-color: #EAB308;
+  border-radius: 9999px;
+  animation: medinv-spinner-rotate 1s linear infinite;
+}
+
+.loading-pulse {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background: rgba(234, 179, 8, 0.12);
+}
+
+.animate-shimmer {
+  animation: medinv-shimmer 1.8s ease-in-out infinite;
+}
+
+body {
+  font-family: var(--font-sans), sans-serif;
+}
+
 @layer base {
   :root {
     /* Refined Lighter Yellow/Cream Theme */
