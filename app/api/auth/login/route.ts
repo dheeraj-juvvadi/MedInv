@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executeQuery, getCurrentDeploymentMode } from "@/lib/mysql"; // Using path alias for Next.js context
 import bcrypt from "bcryptjs";
-import { SignJWT } from "jose";
+import {
+  SESSION_COOKIE_NAME,
+  SESSION_MAX_AGE_SECONDS,
+  createSessionToken,
+} from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,24 +63,13 @@ export async function POST(req: NextRequest) {
     }
     // --- End Password Verification ---
 
-    // --- Session/Token Generation ---
-    // IMPORTANT: Use a strong, secret key stored securely (e.g., environment variable)
-    const JWT_SECRET =
-      process.env.JWT_SECRET || "YOUR_VERY_SECRET_KEY_REPLACE_ME"; // Replace with env var
-    const expiresIn = "1h";
-
     const payload = {
       username: user.username,
       // role: user.role, // Column does not exist
       employeeId: user.employee_id,
     };
 
-    // Sign the token
-    const token = await new SignJWT(payload)
-      .setProtectedHeader({ alg: "HS256" })
-      .setIssuedAt()
-      .setExpirationTime(expiresIn)
-      .sign(new TextEncoder().encode(JWT_SECRET));
+    const token = await createSessionToken(payload);
 
     // Prepare response
     const { password: _, ...userInfo } = user; // Exclude password from response data
@@ -86,12 +79,12 @@ export async function POST(req: NextRequest) {
     );
 
     // Set the JWT as an HTTP-only cookie
-    response.cookies.set("authToken", token, {
+    response.cookies.set(SESSION_COOKIE_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV !== "development", // Use secure cookies in production
       sameSite: "strict", // Prevent CSRF
       path: "/", // Cookie available across the site
-      maxAge: 60 * 60, // 1 hour in seconds (matches token expiry)
+      maxAge: SESSION_MAX_AGE_SECONDS,
     });
     // --- End Session/Token Generation ---
 

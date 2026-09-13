@@ -12,7 +12,7 @@ const readline = require('readline');
 const { exec } = require('child_process');
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
-const bcrypt = require('bcrypt'); // Add bcrypt for password hashing
+const bcrypt = require('bcryptjs'); // Add bcrypt for password hashing
 
 // Load environment variables
 dotenv.config({ path: '.env.local' });
