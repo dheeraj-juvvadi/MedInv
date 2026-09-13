@@ -1,195 +1,177 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ThemeProvider } from "@/components/theme-provider";
-import Sidebar from "@/components/sidebar";
-import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import PageLoader from "@/components/page-loader";
-import { motion, AnimatePresence } from "framer-motion";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Menu, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useTheme } from "next-themes";
+import {
+  Bell,
+  Search,
+  Sun,
+  Moon,
+  ArrowUpRight,
+  Command,
+  Grid2X2,
+} from "lucide-react";
+import { Brand, navigation } from "@/components/sidebar";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
-interface AppLayoutProps {
-  children: React.ReactNode;
-}
-
-export function AppLayout({ children }: AppLayoutProps) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isMobile = useIsMobile();
-
-  // Load sidebar state from localStorage on mount
+  const { resolvedTheme, setTheme } = useTheme();
+  const [search, setSearch] = useState(false);
+  const [query, setQuery] = useState("");
+  const current = navigation.find((n) => n.path === pathname);
   useEffect(() => {
-    try {
-      const savedState = localStorage.getItem('sidebarCollapsed');
-      if (savedState !== null && !isMobile) {
-        setIsSidebarCollapsed(JSON.parse(savedState));
-      }
-      
-      // On mobile, always start collapsed
-      if (isMobile) {
-        setIsSidebarCollapsed(true);
-        setMobileMenuOpen(false);
-      }
-      
-      // Always ensure sidebar is visible on mount (except login)
-      if (pathname !== "/login") {
-        setIsSidebarVisible(true);
-      }
-    } catch (error) {
-      console.error('Error loading sidebar state:', error);
-    }
-  }, [pathname, isMobile]);
-
-  // Save sidebar state to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('sidebarCollapsed', JSON.stringify(isSidebarCollapsed));
-    } catch (error) {
-      console.error('Error saving sidebar state:', error);
-    }
-  }, [isSidebarCollapsed]);
-
-  // Simulate loading for better UX
-  useEffect(() => {
-    // Fast loading for subsequent navigation
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      // Ensure sidebar is visible after page load (except login)
-      if (pathname !== "/login") {
-        setIsSidebarVisible(true);
-      }
-    }, pathname === "/login" ? 100 : 300);
-    return () => clearTimeout(timer);
+    setSearch(false);
+    setQuery("");
   }, [pathname]);
-
-  // Close mobile menu on route change
   useEffect(() => {
-    if (isMobile) {
-      setMobileMenuOpen(false);
-    }
-  }, [pathname, isMobile]);
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (isMobile && mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
+    const handleKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+        event.preventDefault();
+        setSearch((open) => !open);
+      }
     };
-  }, [mobileMenuOpen, isMobile]);
-
-  // Handle sidebar toggle
-  const toggleSidebar = () => {
-    if (isMobile) {
-      setMobileMenuOpen(prev => !prev);
-    } else {
-      setIsSidebarCollapsed(prev => !prev);
-    }
-  };
-
-  // Handle sidebar auto-expand state
-  const handleSidebarExpandChange = (expanded: boolean) => {
-    setIsSidebarExpanded(expanded);
-  };
-
-  // Force sidebar to render except for login page
-  const shouldRenderSidebar = pathname !== "/login";
-
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+  const matches = navigation.filter((n) =>
+    n.label.toLowerCase().includes(query.toLowerCase()),
+  );
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <div className="min-h-screen bg-background font-sans antialiased">
-        {isLoading ? (
-          <PageLoader />
-        ) : (
-          <div className="flex h-screen overflow-hidden">
-            {/* Mobile Menu Button */}
-            {shouldRenderSidebar && isMobile && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "fixed top-4 left-4 z-50 tap-target",
-                  "bg-background/95 backdrop-blur-lg border border-border/50",
-                  "shadow-lg hover:shadow-xl transition-all"
-                )}
-                onClick={toggleSidebar}
-              >
-                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-              </Button>
-            )}
-
-            {/* Mobile Overlay */}
-            {isMobile && mobileMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
-                onClick={() => setMobileMenuOpen(false)}
-              />
-            )}
-
-            {/* Sidebar */}
-            {shouldRenderSidebar && isSidebarVisible && (
-              <div className={cn(
-                isMobile && "fixed inset-y-0 left-0 z-50",
-                isMobile && !mobileMenuOpen && "-translate-x-full",
-                isMobile && "transition-transform duration-300 ease-in-out"
-              )}>
-                <Sidebar
-                  collapsed={isMobile ? false : isSidebarCollapsed}
-                  toggleCollapsed={toggleSidebar}
-                  className={cn(
-                    "h-screen",
-                    !isMobile && "fixed left-0 top-0 z-50"
-                  )}
-                  onExpandChange={handleSidebarExpandChange}
-                />
-              </div>
-            )}
-            
-            {/* Main content area */}
-            <main
-              className={cn(
-                "flex-1 overflow-y-auto h-screen transition-all duration-300 ease-in-out bg-muted/10",
-                // Desktop margins
-                !isMobile && shouldRenderSidebar && !isSidebarCollapsed && isSidebarVisible && "ml-[260px]",
-                !isMobile && shouldRenderSidebar && isSidebarCollapsed && isSidebarVisible && "ml-[70px]",
-                // Mobile - no left margin, add top padding for menu button
-                isMobile && shouldRenderSidebar && "pt-16",
-                // Responsive padding
-                isMobile ? "p-4" : "p-6 md:p-8"
-              )}
+    <div className="workspace-app">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
+      <header className="workspace-toolbar">
+        <Brand />
+        <nav className="workspace-primary-nav" aria-label="Primary navigation">
+          {navigation.slice(0, 5).map((n) => (
+            <Link
+              key={n.path}
+              href={n.path}
+              aria-current={pathname === n.path ? "page" : undefined}
             >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={pathname}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className={cn(
-                    "h-full w-full",
-                    !isMobile && "max-w-7xl mx-auto"
-                  )}
-                >
-                  {children}
-                </motion.div>
-              </AnimatePresence>
-            </main>
-          </div>
-        )}
+              {n.label}
+            </Link>
+          ))}
+          <button onClick={() => setSearch(true)} className="all-tools-control">
+            <Grid2X2 size={14} />
+            All tools
+          </button>
+        </nav>
+        <div className="toolbar-actions">
+          <button
+            className="icon-control mobile-menu"
+            aria-label="Open navigation"
+            onClick={() => setSearch(true)}
+          >
+            <Grid2X2 size={18} />
+          </button>
+          <button
+            className="toolbar-search"
+            aria-label="Search pages"
+            onClick={() => setSearch(true)}
+          >
+            <Search size={16} />
+            <kbd>⌘ K</kbd>
+          </button>
+          <button
+            className="icon-control"
+            aria-label="Toggle color theme"
+            onClick={() =>
+              setTheme(resolvedTheme === "dark" ? "light" : "dark")
+            }
+          >
+            <Sun className="theme-sun" size={16} />
+            <Moon className="theme-moon" size={16} />
+          </button>
+          <Link
+            href="/expiry-alerts"
+            aria-label="View expiry alerts"
+            className="icon-control"
+          >
+            <Bell size={16} />
+          </Link>
+          <Link
+            href="/staff-accounts"
+            className="toolbar-avatar"
+            aria-label="Manage staff accounts"
+          >
+            M
+          </Link>
+        </div>
+      </header>
+      <div className="workspace-main">
+        <div className="workspace-context">
+          <span>
+            Workspace <span className="context-slash">/</span>{" "}
+            {current?.label || "Records"}
+          </span>
+          {process.env.NEXT_PUBLIC_DEPLOYMENT_MODE === "demo" && (
+            <span className="workspace-mode">
+              <span className="status-dot" />
+              Demo data
+            </span>
+          )}
+        </div>
+        <main id="main-content" tabIndex={-1} className="workspace-content">
+          {children}
+        </main>
       </div>
-    </ThemeProvider>
+      <Dialog open={search} onOpenChange={setSearch}>
+        <DialogContent className="page-search-dialog">
+          <DialogTitle className="sr-only">Navigate workspace</DialogTitle>
+          <DialogDescription className="sr-only">
+            Search and open a MedInv page.
+          </DialogDescription>
+          <div className="command-search-field">
+            <Search size={19} />
+            <Input
+              autoFocus
+              aria-label="Search workspace pages"
+              placeholder="Where do you want to go?"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="page-search-results">
+            {matches.map((n) => (
+              <Link
+                key={n.path}
+                href={n.path}
+                onClick={() => {
+                  setSearch(false);
+                  setQuery("");
+                }}
+              >
+                <n.icon size={17} />
+                <span>
+                  {n.label}
+                  <small>{n.group}</small>
+                </span>
+                <ArrowUpRight size={14} />
+              </Link>
+            ))}
+            {!matches.length && (
+              <p className="search-empty">No pages match “{query}”.</p>
+            )}
+          </div>
+          <div className="search-hint">
+            <span>
+              <Command size={12} /> Workspace navigation
+            </span>
+            <span>Esc to close</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

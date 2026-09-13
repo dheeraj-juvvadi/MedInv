@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { AppLayout } from "@/components/app-layout";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { InventoryForm } from '@/components/inventory-form';
-import { Input } from "@/components/ui/input";
+import { InventoryForm } from "@/components/inventory-form";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,20 +16,34 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Edit, Trash2, Search, PlusCircle, AlertCircle } from 'lucide-react';
-import { useDebounce } from '@/hooks/use-debounce';
-import { DataTable } from '@/components/data-table';
+import {
+  AlertCircle,
+  ArrowUpRight,
+  Edit2,
+  Package2,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import { DataTable } from "@/components/data-table";
+import "./inventory.css";
 
 interface InventoryItem {
   inventory_number: number;
   medicine_id: number;
-  supplier_id: number;
+  supplier_id: number | null;
   medicine_name: string;
-  supplier_name: string;
+  supplier_name: string | null;
   quantity: number;
+}
+
+type StockFilter = "all" | "low-stock" | "out-of-stock";
+
+function stockStatus(quantity: number) {
+  if (quantity === 0) return { label: "Out of stock", className: "is-empty" };
+  if (quantity < 10) return { label: "Low stock", className: "is-low" };
+  return { label: "In stock", className: "is-available" };
 }
 
 export default function InventoryPage() {
@@ -39,203 +52,376 @@ export default function InventoryPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [currentItem, setCurrentItem] = useState<InventoryItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
 
   const fetchInventory = useCallback(async () => {
-    setActionError(null);
+    setIsLoading(true);
     setFetchError(null);
     try {
-      const response = await fetch('/api/inventory');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch inventory: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setInventory(data);
-    } catch (err) {
-      console.error("Error fetching inventory:", err);
-      setFetchError(err instanceof Error ? err.message : 'An unknown error occurred');
+      const response = await fetch("/api/inventory");
+      if (!response.ok)
+        throw new Error("Inventory could not be loaded. Please try again.");
+      setInventory(await response.json());
+    } catch (error) {
+      setFetchError(
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred.",
+      );
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    setIsLoading(true);
-    fetchInventory();
+    void fetchInventory();
+    const filter = new URLSearchParams(window.location.search).get("filter");
+    if (filter === "low-stock" || filter === "out-of-stock")
+      setStockFilter(filter);
   }, [fetchInventory]);
 
-  const handleDelete = async (inventoryNumber: number) => {
+  const handleOpenForm = useCallback((item: InventoryItem | null = null) => {
     setActionError(null);
-    try {
-      const response = await fetch(`/api/inventory?inventory_number=${inventoryNumber}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 409) {
-          setActionError(errorData.error || 'Cannot delete: Item is referenced elsewhere (e.g., Expiry Alerts).');
-        } else {
-          setActionError(errorData.error || 'Failed to delete item.');
-        }
-        return;
-      }
-      fetchInventory();
-    } catch (err) {
-      console.error("Error deleting inventory item:", err);
-      setActionError(err instanceof Error ? err.message : 'An unexpected error occurred during deletion.');
-    }
-  };
-
-  const handleOpenForm = (item: InventoryItem | null = null) => {
-    setActionError(null);
-    if (item && (item.medicine_id === undefined || item.supplier_id === undefined)) {
-      console.error("Missing medicine_id or supplier_id for editing item:", item);
-      setActionError("Cannot edit item: missing required ID data.");
-      return;
-    }
     setCurrentItem(item);
     setIsFormOpen(true);
+  }, []);
+
+  const handleDelete = async () => {
+    if (!itemToDelete || isDeleting) return;
+    setActionError(null);
+    setIsDeleting(true);
+    try {
+      const response = await fetch(
+        `/api/inventory?inventory_number=${itemToDelete.inventory_number}`,
+        {
+          method: "DELETE",
+        },
+      );
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          error.error || "This inventory item could not be deleted.",
+        );
+      }
+      setItemToDelete(null);
+      await fetchInventory();
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred during deletion.",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleFormSuccess = () => {
     setIsFormOpen(false);
     setCurrentItem(null);
-    fetchInventory();
+    void fetchInventory();
   };
 
-  const columns = useMemo(() => [
-    {
-      accessorKey: 'inventory_number',
-      header: 'Inv. No.',
-    },
-    {
-      accessorKey: 'medicine_name',
-      header: 'Medicine Name',
-    },
-    {
-      accessorKey: 'supplier_name',
-      header: 'Supplier Name',
-    },
-    {
-      accessorKey: 'quantity',
-      header: 'Quantity',
-      cell: ({ getValue }) => <div className="text-right">{getValue()}</div>,
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <div className="space-x-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => handleOpenForm(row.original)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-red-600 hover:text-red-700"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the inventory record for {row.original.medicine_name || 'this item'}.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => handleDelete(row.original.inventory_number)}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+  const summary = useMemo(
+    () =>
+      inventory.reduce(
+        (totals, item) => ({
+          units: totals.units + Number(item.quantity),
+          low: totals.low + (item.quantity < 10 ? 1 : 0),
+          empty: totals.empty + (item.quantity === 0 ? 1 : 0),
+        }),
+        { units: 0, low: 0, empty: 0 },
       ),
-    },
-  ], [handleOpenForm, handleDelete]);
+    [inventory],
+  );
 
-  const filteredInventory = useMemo(() => {
-    if (!debouncedSearchTerm) return inventory;
-    const lower = debouncedSearchTerm.toLowerCase();
-    return inventory.filter(item =>
-      item.medicine_name?.toLowerCase().includes(lower) ||
-      item.supplier_name?.toLowerCase().includes(lower)
-    );
-  }, [inventory, debouncedSearchTerm]);
+  const filteredInventory = useMemo(
+    () =>
+      inventory.filter((item) =>
+        stockFilter === "low-stock"
+          ? item.quantity < 10
+          : stockFilter === "out-of-stock"
+            ? item.quantity === 0
+            : true,
+      ),
+    [inventory, stockFilter],
+  );
+
+  const columns = useMemo<ColumnDef<InventoryItem>[]>(
+    () => [
+      {
+        accessorKey: "inventory_number",
+        header: "Stock no.",
+        cell: ({ row }) => (
+          <span className="inventory-record-number">
+            #{String(row.original.inventory_number).padStart(4, "0")}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "medicine_name",
+        header: "Medicine",
+        cell: ({ row }) => (
+          <div className="inventory-medicine">
+            <span className="inventory-medicine-icon" aria-hidden="true">
+              <Package2 size={18} strokeWidth={1.5} />
+            </span>
+            <div>
+              <span className="inventory-medicine-name">
+                {row.original.medicine_name || "Unnamed medicine"}
+              </span>
+              <span className="inventory-medicine-detail">
+                Medicine #{row.original.medicine_id}
+              </span>
+            </div>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "supplier_name",
+        header: "Supplier",
+        cell: ({ row }) => (
+          <span className="inventory-supplier">
+            {row.original.supplier_name || "Not recorded"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "quantity",
+        header: "Available stock",
+        cell: ({ row }) => (
+          <span className="inventory-quantity">
+            {row.original.quantity.toLocaleString()} <span>units</span>
+          </span>
+        ),
+      },
+      {
+        id: "status",
+        accessorFn: (item) => stockStatus(item.quantity).label,
+        header: "Status",
+        cell: ({ row }) => {
+          const status = stockStatus(row.original.quantity);
+          return (
+            <span className={`inventory-stock-status ${status.className}`}>
+              <span aria-hidden="true" />
+              {status.label}
+            </span>
+          );
+        },
+      },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => (
+          <div className="inventory-row-actions">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Edit ${row.original.medicine_name}`}
+              onClick={() => handleOpenForm(row.original)}
+            >
+              <Edit2 size={15} aria-hidden="true" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Delete ${row.original.medicine_name}`}
+              className="inventory-delete-button"
+              onClick={() => {
+                setActionError(null);
+                setItemToDelete(row.original);
+              }}
+            >
+              <Trash2 size={15} aria-hidden="true" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [handleOpenForm],
+  );
+
+  const summaryValue = (value: number) =>
+    isLoading ? "—" : value.toLocaleString();
 
   return (
     <AppLayout>
       <DashboardShell>
-        <DashboardHeader heading="Inventory" text="View and manage current stock levels." />
+        <div className="inventory-page">
+          <DashboardHeader
+            heading="Inventory"
+            text="Track stock levels and update medicine quantities."
+          >
+            <Button
+              onClick={() => handleOpenForm()}
+              className="inventory-add-button"
+            >
+              <Plus size={16} aria-hidden="true" /> Add inventory
+            </Button>
+          </DashboardHeader>
 
-        {actionError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Action Failed</AlertTitle>
-            <AlertDescription>{actionError}</AlertDescription>
-          </Alert>
-        )}
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-lg font-semibold">Current Inventory</CardTitle>
-            <div className="flex items-center space-x-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search medicine or supplier..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-[200px] md:w-[300px]"
-                />
-              </div>
-              <Button size="sm" onClick={() => handleOpenForm(null)}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
+          <section
+            className="inventory-summary"
+            aria-label="Inventory overview"
+            aria-busy={isLoading}
+          >
+            <div className="inventory-summary-item">
+              <span className="inventory-summary-label">Inventory records</span>
+              <strong>{summaryValue(inventory.length)}</strong>
+              <span className="inventory-summary-note">
+                Across your medicine cabinet
+              </span>
             </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <p className="text-muted-foreground">Loading inventory...</p>
+            <div className="inventory-summary-item">
+              <span className="inventory-summary-label">Units on hand</span>
+              <strong>{summaryValue(summary.units)}</strong>
+              <span className="inventory-summary-note">
+                Total available stock
+              </span>
+            </div>
+            <button
+              className="inventory-summary-item inventory-summary-link"
+              onClick={() => setStockFilter("low-stock")}
+              aria-label={`Show ${summary.low} low-stock records`}
+            >
+              <span className="inventory-summary-label">
+                Running low <ArrowUpRight size={14} aria-hidden="true" />
+              </span>
+              <strong>{summaryValue(summary.low)}</strong>
+              <span className="inventory-summary-note">
+                Fewer than 10 units remaining
+              </span>
+            </button>
+            <button
+              className="inventory-summary-item inventory-summary-link"
+              onClick={() => setStockFilter("out-of-stock")}
+              aria-label={`Show ${summary.empty} out-of-stock records`}
+            >
+              <span className="inventory-summary-label">
+                Out of stock <ArrowUpRight size={14} aria-hidden="true" />
+              </span>
+              <strong>{summaryValue(summary.empty)}</strong>
+              <span className="inventory-summary-note">
+                Ready for replenishment
+              </span>
+            </button>
+          </section>
+
+          <section
+            className="inventory-workspace panel"
+            aria-labelledby="inventory-table-heading"
+          >
+            <div className="inventory-workspace-heading">
+              <div>
+                <h2 id="inventory-table-heading">
+                  Your inventory{" "}
+                  <span>{isLoading ? "—" : inventory.length}</span>
+                </h2>
+                <p>Manage stock, make adjustments, and keep things moving.</p>
               </div>
-            ) : fetchError ? (
-              <div className="flex justify-center items-center h-64 text-red-600">
-                <p>Error loading inventory: {fetchError}</p>
+              <span className="inventory-table-note">
+                Low stock: under 10 units
+              </span>
+            </div>
+            {fetchError ? (
+              <div className="inventory-error" role="alert">
+                <AlertCircle size={24} aria-hidden="true" />
+                <h3>We couldn’t load your inventory</h3>
+                <p>{fetchError}</p>
+                <Button variant="outline" onClick={() => void fetchInventory()}>
+                  Try again
+                </Button>
               </div>
             ) : (
               <DataTable
                 columns={columns}
                 data={filteredInventory}
                 searchKey="medicine or supplier"
+                tableLabel="Medicine inventory"
+                exportFilename="medinv-inventory.csv"
                 isLoading={isLoading}
+                toolbar={
+                  <div
+                    className="inventory-stock-filters"
+                    role="group"
+                    aria-label="Filter inventory by stock level"
+                  >
+                    <button
+                      aria-pressed={stockFilter === "all"}
+                      onClick={() => setStockFilter("all")}
+                    >
+                      All stock
+                    </button>
+                    <button
+                      aria-pressed={stockFilter === "low-stock"}
+                      onClick={() => setStockFilter("low-stock")}
+                    >
+                      Low stock <span>{summary.low}</span>
+                    </button>
+                    <button
+                      aria-pressed={stockFilter === "out-of-stock"}
+                      onClick={() => setStockFilter("out-of-stock")}
+                    >
+                      Out of stock <span>{summary.empty}</span>
+                    </button>
+                  </div>
+                }
               />
             )}
-          </CardContent>
-        </Card>
+          </section>
+        </div>
         <InventoryForm
           item={currentItem}
           isOpen={isFormOpen}
           onOpenChange={setIsFormOpen}
           onSuccess={handleFormSuccess}
         />
+        <AlertDialog
+          open={Boolean(itemToDelete)}
+          onOpenChange={(open) => {
+            if (!open && !isDeleting) {
+              setItemToDelete(null);
+              setActionError(null);
+            }
+          }}
+        >
+          <AlertDialogContent className="inventory-delete-dialog">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove this inventory record?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently remove {itemToDelete?.medicine_name}{" "}
+                (stock #{itemToDelete?.inventory_number}) and its{" "}
+                {itemToDelete?.quantity.toLocaleString()} recorded units. The
+                medicine itself will not be deleted. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {actionError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                <AlertTitle>Couldn’t delete inventory</AlertTitle>
+                <AlertDescription>{actionError}</AlertDescription>
+              </Alert>
+            )}
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>
+                Keep record
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={isDeleting}
+                onClick={(event) => {
+                  event.preventDefault();
+                  void handleDelete();
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? "Removing…" : "Remove record"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DashboardShell>
     </AppLayout>
   );

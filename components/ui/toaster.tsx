@@ -1,35 +1,31 @@
-"use client"
+"use client";
 
-import { useToast } from "@/hooks/use-toast"
-import {
-  Toast,
-  ToastClose,
-  ToastDescription,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-} from "@/components/ui/toast"
+import { useToast } from "@/hooks/use-toast";
+import { X } from "lucide-react";
 
 export function Toaster() {
-  const { toasts } = useToast()
-
+  const { toasts, dismiss } = useToast();
   return (
-    <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
-        return (
-          <Toast key={id} {...props}>
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
-        )
-      })}
-      <ToastViewport />
-    </ToastProvider>
-  )
+    <div className="toast-stack" aria-live="polite">
+      {toasts.map((toast) => (
+        <div
+          className="toast-message"
+          role={toast.variant === "destructive" ? "alert" : "status"}
+          key={toast.id}
+        >
+          <div>
+            <strong>{toast.title}</strong>
+            {toast.description && <p>{toast.description}</p>}
+          </div>
+          <button
+            className="icon-control"
+            onClick={() => dismiss(toast.id)}
+            aria-label="Dismiss notification"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
 }

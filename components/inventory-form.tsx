@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle } from "lucide-react";
 
 // Interfaces
 interface Medicine {
@@ -28,17 +28,12 @@ interface Medicine {
   name: string;
 }
 
-interface Supplier {
-  supplier_id: number;
-  name: string;
-}
-
 interface InventoryItem {
   inventory_number: number;
   medicine_id: number;
-  supplier_id: number;
+  supplier_id?: number | null;
   medicine_name?: string;
-  supplier_name?: string;
+  supplier_name?: string | null;
   quantity: number;
 }
 
@@ -49,14 +44,17 @@ interface InventoryFormProps {
   onSuccess?: () => void;
 }
 
-export function InventoryForm({ item, isOpen, onOpenChange, onSuccess }: InventoryFormProps) {
+export function InventoryForm({
+  item,
+  isOpen,
+  onOpenChange,
+  onSuccess,
+}: InventoryFormProps) {
   // Form state
   const [medicines, setMedicines] = useState<Medicine[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [selectedMedicine, setSelectedMedicine] = useState<string>('');
-  const [selectedSupplier, setSelectedSupplier] = useState<string>('');
-  const [quantity, setQuantity] = useState<string>('');
-  
+  const [selectedMedicine, setSelectedMedicine] = useState<string>("");
+  const [quantity, setQuantity] = useState<string>("");
+
   // UI state
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,43 +67,34 @@ export function InventoryForm({ item, isOpen, onOpenChange, onSuccess }: Invento
   useEffect(() => {
     if (isOpen) {
       fetchFormData();
-      
+
       if (isEditMode && item) {
-        setSelectedMedicine(String(item.medicine_id || ''));
-        setSelectedSupplier(String(item.supplier_id || ''));
+        setSelectedMedicine(String(item.medicine_id || ""));
         setQuantity(String(item.quantity || 0));
       } else {
-        setSelectedMedicine('');
-        setSelectedSupplier('');
-        setQuantity('');
+        setSelectedMedicine("");
+        setQuantity("");
       }
       setError(null);
     }
   }, [isOpen, item, isEditMode]);
 
-  // Fetch medicines and suppliers
+  // Fetch available medicines.
   const fetchFormData = async () => {
     setIsLoadingData(true);
     try {
       // Fetch medicines
-      const medResponse = await fetch('/api/medicines');
+      const medResponse = await fetch("/api/medicines");
       if (!medResponse.ok) {
-        throw new Error('Failed to fetch medicines');
+        throw new Error("Failed to fetch medicines");
       }
       const medData = await medResponse.json();
       setMedicines(medData);
-      
-      // Fetch suppliers
-      const supResponse = await fetch('/api/suppliers');
-      if (!supResponse.ok) {
-        throw new Error('Failed to fetch suppliers');
-      }
-      const supData = await supResponse.json();
-      setSuppliers(supData);
-      
     } catch (err) {
       console.error("Error fetching form data:", err);
-      setError(err instanceof Error ? err.message : 'Failed to load required data');
+      setError(
+        err instanceof Error ? err.message : "Failed to load required data",
+      );
     } finally {
       setIsLoadingData(false);
     }
@@ -116,14 +105,19 @@ export function InventoryForm({ item, isOpen, onOpenChange, onSuccess }: Invento
     setError(null);
 
     // Validate form
-    if (!selectedMedicine || !selectedSupplier || !quantity) {
+    if (!selectedMedicine || !quantity) {
       setError("Please fill in all required fields.");
       return;
     }
-    
-    const quantityNum = parseInt(quantity);
-    if (isNaN(quantityNum) || quantityNum < (isEditMode ? 0 : 1)) {
-      setError(`Quantity must be ${isEditMode ? '0 or more' : '1 or more'}.`);
+
+    const quantityNum = Number(quantity);
+    if (
+      !Number.isSafeInteger(quantityNum) ||
+      quantityNum < (isEditMode ? 0 : 1)
+    ) {
+      setError(
+        `Quantity must be a whole number ${isEditMode ? "0 or more" : "1 or more"}.`,
+      );
       return;
     }
 
@@ -132,51 +126,55 @@ export function InventoryForm({ item, isOpen, onOpenChange, onSuccess }: Invento
     // Prepare payload
     const payload = {
       medicine_id: parseInt(selectedMedicine),
-      supplier_id: parseInt(selectedSupplier),
-      quantity: quantityNum
+      quantity: quantityNum,
     };
-    
+
     // Determine API endpoint and method
-    const url = isEditMode 
-      ? `/api/inventory?inventory_number=${item?.inventory_number}` 
-      : '/api/inventory';
-    const method = isEditMode ? 'PUT' : 'POST';
+    const url = isEditMode
+      ? `/api/inventory?inventory_number=${item?.inventory_number}`
+      : "/api/inventory";
+    const method = isEditMode ? "PUT" : "POST";
 
     try {
       // Submit form data
       const response = await fetch(url, {
         method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       // Check for API errors
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to ${isEditMode ? 'update' : 'add'} inventory item`);
+        throw new Error(
+          errorData.error ||
+            `Failed to ${isEditMode ? "update" : "add"} inventory item`,
+        );
       }
 
       // Handle success
-      toast({ 
-        title: "Success", 
-        description: `Inventory item ${isEditMode ? 'updated' : 'added'} successfully.` 
+      toast({
+        title: "Success",
+        description: `Inventory item ${isEditMode ? "updated" : "added"} successfully.`,
       });
-      
+
       // Close dialog and refresh parent
       onOpenChange(false);
       if (onSuccess) onSuccess();
-
     } catch (err) {
       // Handle errors
-      const message = err instanceof Error ? err.message : `Failed to ${isEditMode ? 'update' : 'add'} item`;
+      const message =
+        err instanceof Error
+          ? err.message
+          : `Failed to ${isEditMode ? "update" : "add"} item`;
       setError(message);
-      toast({ 
-        title: "Error", 
-        description: message, 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -192,17 +190,17 @@ export function InventoryForm({ item, isOpen, onOpenChange, onSuccess }: Invento
         <div style={{ zIndex: 1000 }} className="p-6 bg-background">
           <DialogHeader className="mb-4">
             <DialogTitle>
-              {isEditMode 
-                ? `Edit Inventory Item #${item?.inventory_number}` 
-                : 'Add New Inventory Item'}
+              {isEditMode
+                ? `Edit Inventory Item #${item?.inventory_number}`
+                : "Add New Inventory Item"}
             </DialogTitle>
             <DialogDescription>
-              {isEditMode 
-                ? 'Update the details for this inventory item.' 
-                : 'Select medicine, supplier, and enter quantity.'}
+              {isEditMode
+                ? "Update the details for this inventory item."
+                : "Choose a medicine and the number of units to add."}
             </DialogDescription>
           </DialogHeader>
-          
+
           {isLoadingData ? (
             <div className="flex justify-center items-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -215,8 +213,8 @@ export function InventoryForm({ item, isOpen, onOpenChange, onSuccess }: Invento
                   Medicine
                 </Label>
                 <div className="col-span-3">
-                  <Select 
-                    value={selectedMedicine} 
+                  <Select
+                    value={selectedMedicine}
                     onValueChange={setSelectedMedicine}
                   >
                     <SelectTrigger id="inv-medicine">
@@ -225,15 +223,15 @@ export function InventoryForm({ item, isOpen, onOpenChange, onSuccess }: Invento
                     <SelectContent className="z-[1001]">
                       {medicines.length > 0 ? (
                         medicines.map((med) => (
-                          <SelectItem 
-                            key={med.medicine_id} 
+                          <SelectItem
+                            key={med.medicine_id}
                             value={String(med.medicine_id)}
                           >
                             {med.name}
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="" disabled>
+                        <SelectItem value="unavailable" disabled>
                           No medicines available
                         </SelectItem>
                       )}
@@ -241,40 +239,7 @@ export function InventoryForm({ item, isOpen, onOpenChange, onSuccess }: Invento
                   </Select>
                 </div>
               </div>
-              
-              {/* Supplier Select */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="inv-supplier" className="text-right">
-                  Supplier
-                </Label>
-                <div className="col-span-3">
-                  <Select 
-                    value={selectedSupplier} 
-                    onValueChange={setSelectedSupplier}
-                  >
-                    <SelectTrigger id="inv-supplier">
-                      <SelectValue placeholder="Select Supplier" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[1001]">
-                      {suppliers.length > 0 ? (
-                        suppliers.map((sup) => (
-                          <SelectItem 
-                            key={sup.supplier_id} 
-                            value={String(sup.supplier_id)}
-                          >
-                            {sup.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="" disabled>
-                          No suppliers available
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
+
               {/* Quantity Input */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="inv-quantity" className="text-right">
@@ -289,7 +254,7 @@ export function InventoryForm({ item, isOpen, onOpenChange, onSuccess }: Invento
                   className="col-span-3"
                 />
               </div>
-              
+
               {/* Error message */}
               {error && (
                 <div className="p-3 rounded bg-destructive/10 text-destructive flex items-center gap-2">
@@ -297,27 +262,26 @@ export function InventoryForm({ item, isOpen, onOpenChange, onSuccess }: Invento
                   <span className="text-sm">{error}</span>
                 </div>
               )}
-              
+
               <DialogFooter className="flex justify-end space-x-2 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => onOpenChange(false)}
                   disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting || isLoadingData}
-                >
+                <Button type="submit" disabled={isSubmitting || isLoadingData}>
                   {isSubmitting ? (
                     <>
                       <span className="mr-2">Saving...</span>
                       <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
                     </>
+                  ) : isEditMode ? (
+                    "Save Changes"
                   ) : (
-                    isEditMode ? 'Save Changes' : 'Add Item'
+                    "Add Item"
                   )}
                 </Button>
               </DialogFooter>

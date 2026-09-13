@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "preview": "node scripts/preview.mjs",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
     "lint": "next lint",
     "setup-db": "node scripts/setup-db.js",
     "setup-indian-db": "node scripts/setup-indian-db.js",

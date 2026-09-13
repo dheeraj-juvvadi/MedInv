@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import React, { useState, useEffect } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle } from "lucide-react";
 
 // Interfaces
 interface Employee {
@@ -52,8 +52,20 @@ interface StaffAccountFormProps {
   onSuccess?: () => void;
 }
 
-export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: StaffAccountFormProps) {
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<StaffAccountFormInputs>();
+export function StaffAccountForm({
+  account,
+  isOpen,
+  onOpenChange,
+  onSuccess,
+}: StaffAccountFormProps) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<StaffAccountFormInputs>();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -66,14 +78,14 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
   useEffect(() => {
     async function fetchEmployees() {
       if (!isOpen) return;
-      
+
       setIsLoadingData(true);
       setApiError(null);
       try {
-        const response = await fetch('/api/employees', {
-          headers: { 'Cache-Control': 'no-cache' }
+        const response = await fetch("/api/employees", {
+          headers: { "Cache-Control": "no-cache" },
         });
-        if (!response.ok) throw new Error('Failed to fetch employees');
+        if (!response.ok) throw new Error("Failed to fetch employees");
         const data = await response.json();
         setEmployees(data);
       } catch (err) {
@@ -84,7 +96,7 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
         setIsLoadingData(false);
       }
     }
-    
+
     if (isOpen) {
       fetchEmployees();
     }
@@ -94,18 +106,21 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && account) {
-        setValue("username", account.username || '');
-        setValue("employee_id", account.employee_id ? String(account.employee_id) : '');
-        setValue("role", account.role || 'staff');
+        setValue("username", account.username || "");
+        setValue(
+          "employee_id",
+          account.employee_id ? String(account.employee_id) : "",
+        );
+        setValue("role", account.role || "staff");
         setValue("password", "");
         setValue("confirmPassword", "");
       } else {
-        reset({ 
-          username: '', 
-          password: '', 
-          confirmPassword: '', 
-          employee_id: '',
-          role: 'staff'
+        reset({
+          username: "",
+          password: "",
+          confirmPassword: "",
+          employee_id: "",
+          role: "staff",
         });
       }
       setApiError(null);
@@ -117,33 +132,35 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
 
     // Client-side validation
     if (!isEditMode && (!data.password || data.password.length < 6)) {
-      setApiError("Password is required and must be at least 6 characters long.");
+      setApiError(
+        "Password is required and must be at least 6 characters long.",
+      );
       return;
     }
-    
+
     if (!isEditMode && data.password !== data.confirmPassword) {
       setApiError("Passwords do not match.");
       return;
     }
-    
+
     if (!data.employee_id) {
       setApiError("An employee must be selected.");
       return;
     }
 
     const payload: any = {
-      employee_id: parseInt(data.employee_id)
+      employee_id: parseInt(data.employee_id),
     };
 
-    let url = '';
-    let method = '';
+    let url = "";
+    let method = "";
 
     if (isEditMode && account) {
       url = `/api/staff-accounts?username=${account.username}`;
-      method = 'PUT';
+      method = "PUT";
     } else {
-      url = '/api/staff-accounts';
-      method = 'POST';
+      url = "/api/staff-accounts";
+      method = "POST";
       payload.username = data.username;
       payload.password = data.password;
     }
@@ -151,26 +168,37 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
     try {
       const response = await fetch(url, {
         method: method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} account`);
+        throw new Error(
+          errorData.error ||
+            `Failed to ${isEditMode ? "update" : "create"} account`,
+        );
       }
 
-      toast({ title: "Success", description: `Staff account ${isEditMode ? 'updated' : 'created'} successfully.` });
+      toast({
+        title: "Success",
+        description: `Staff account ${isEditMode ? "updated" : "created"} successfully.`,
+      });
       onOpenChange(false);
       onSuccess?.();
-
     } catch (error) {
-      const message = error instanceof Error ? error.message : `Failed to ${isEditMode ? 'update' : 'create'} account`;
+      const message =
+        error instanceof Error
+          ? error.message
+          : `Failed to ${isEditMode ? "update" : "create"} account`;
       setApiError(message);
-      console.error(`Error ${isEditMode ? 'updating' : 'creating'} staff account:`, error);
+      console.error(
+        `Error ${isEditMode ? "updating" : "creating"} staff account:`,
+        error,
+      );
       toast({ title: "Error", description: message, variant: "destructive" });
     }
   };
@@ -192,17 +220,17 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
         <div style={{ zIndex: 1000 }} className="p-6 bg-background">
           <DialogHeader className="mb-4">
             <DialogTitle>
-              {isEditMode 
-                ? `Edit Staff Account: ${account?.username}` 
-                : 'Add New Staff Account'}
+              {isEditMode
+                ? `Edit Staff Account: ${account?.username}`
+                : "Add New Staff Account"}
             </DialogTitle>
             <DialogDescription>
-              {isEditMode 
-                ? "Update the linked employee." 
+              {isEditMode
+                ? "Update the linked employee."
                 : "Create a new user account and link it to an employee."}
             </DialogDescription>
           </DialogHeader>
-          
+
           {isLoadingData ? (
             <div className="flex justify-center items-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -217,12 +245,16 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
                 <div className="col-span-3">
                   <Input
                     id="acc-username"
-                    {...register("username", { required: "Username is required" })}
+                    {...register("username", {
+                      required: "Username is required",
+                    })}
                     placeholder="e.g., jdoe"
                     readOnly={isEditMode}
                   />
                   {errors.username && (
-                    <p className="text-red-500 text-sm mt-1">{errors.username.message}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.username.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -238,20 +270,22 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
                       <Input
                         id="acc-password"
                         type="password"
-                        {...register("password", { 
-                          required: "Password is required", 
-                          minLength: { 
-                            value: 6, 
-                            message: "Password must be at least 6 characters"
-                          } 
+                        {...register("password", {
+                          required: "Password is required",
+                          minLength: {
+                            value: 6,
+                            message: "Password must be at least 6 characters",
+                          },
                         })}
                       />
                       {errors.password && (
-                        <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.password.message}
+                        </p>
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="acc-confirmPassword" className="text-right">
                       Confirm Pwd
@@ -262,11 +296,14 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
                         type="password"
                         {...register("confirmPassword", {
                           required: "Please confirm password",
-                          validate: value => value === passwordValue || "Passwords do not match"
+                          validate: (value) =>
+                            value === passwordValue || "Passwords do not match",
                         })}
                       />
                       {errors.confirmPassword && (
-                        <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.confirmPassword.message}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -287,14 +324,20 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
                       <SelectValue placeholder="Select Employee" />
                     </SelectTrigger>
                     <SelectContent className="z-[1001]">
-                      {employees && employees.length > 0 ? 
+                      {employees && employees.length > 0 ? (
                         employees.map((emp) => (
-                          <SelectItem key={emp.employee_id} value={String(emp.employee_id)}>
+                          <SelectItem
+                            key={emp.employee_id}
+                            value={String(emp.employee_id)}
+                          >
                             {emp.name} ({emp.position})
                           </SelectItem>
-                        )) : 
-                        <SelectItem value="" disabled>No employees found</SelectItem>
-                      }
+                        ))
+                      ) : (
+                        <SelectItem value="unavailable" disabled>
+                          No employees found
+                        </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -307,27 +350,26 @@ export function StaffAccountForm({ account, isOpen, onOpenChange, onSuccess }: S
                   <span className="text-sm">{apiError}</span>
                 </div>
               )}
-              
+
               <DialogFooter className="flex justify-end space-x-2 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => handleOpenChange(false)}
                   disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting || isLoadingData}
-                >
+                <Button type="submit" disabled={isSubmitting || isLoadingData}>
                   {isSubmitting ? (
                     <>
                       <span className="mr-2">Saving...</span>
                       <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
                     </>
+                  ) : isEditMode ? (
+                    "Save Changes"
                   ) : (
-                    isEditMode ? 'Save Changes' : 'Create Account'
+                    "Create Account"
                   )}
                 </Button>
               </DialogFooter>

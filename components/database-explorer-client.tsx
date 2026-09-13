@@ -1,11 +1,16 @@
-'use client';
+"use client";
 
-import { useSearchParams } from 'next/navigation';
-import { DatabaseExplorer } from './database-explorer';
+import { useSearchParams } from "next/navigation";
+import { DatabaseExplorer } from "./database-explorer";
+import { AppLayout } from "./app-layout";
 
 export function DatabaseExplorerClient() {
   const searchParams = useSearchParams();
-  const table = searchParams.get('table');
+  const table = searchParams.get("table");
 
-  return <DatabaseExplorer initialSelectedTable={table || undefined} />;
+  return (
+    <AppLayout>
+      <DatabaseExplorer initialSelectedTable={table || undefined} />
+    </AppLayout>
+  );
 }

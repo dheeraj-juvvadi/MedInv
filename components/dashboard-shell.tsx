@@ -1,8 +1,7 @@
 "use client";
 
-import type React from "react"
-import { cn } from "@/lib/utils"
-import { useIsMobile } from "@/hooks/use-mobile"
+import type React from "react";
+import { cn } from "@/lib/utils";
 
 interface DashboardShellProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -11,15 +10,9 @@ export function DashboardShell({
   className,
   ...props
 }: DashboardShellProps) {
-  const isMobile = useIsMobile();
-
   return (
     <div
-      className={cn(
-        "flex flex-col w-full h-full",
-        isMobile ? "gap-4" : "gap-6",
-        className
-      )}
+      className={cn("flex flex-col w-full h-full gap-4 md:gap-6", className)}
       {...props}
     >
       {children}

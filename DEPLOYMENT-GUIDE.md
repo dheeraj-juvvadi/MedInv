@@ -2,7 +2,7 @@
 
 This guide provides instructions for deploying the MedInv application to Vercel in two modes:
 
-1. **Demo Mode** - A free tier deployment where all data is stored in memory and resets on page refresh.
+1. **Demo Mode** - A free tier deployment where data is stored in one server process, survives page refreshes, and resets on server restart. Separate serverless instances do not share state.
 2. **Database Mode** - A persistent mode that uses MySQL/PlanetScale for data storage.
 
 ## Prerequisites

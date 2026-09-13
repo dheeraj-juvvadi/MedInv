@@ -1,42 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { executeQuery, getCurrentDeploymentMode } from '@/lib/mysql'; // Using path alias for Next.js context
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from "next/server";
+import { executeQuery, getCurrentDeploymentMode } from "@/lib/mysql"; // Using path alias for Next.js context
+import bcrypt from "bcryptjs";
+import { SignJWT } from "jose";
 
 export async function POST(req: NextRequest) {
   try {
     const { username, password } = await req.json();
 
     if (!username || !password) {
-      return NextResponse.json({ message: 'Username and password are required' }, { status: 400 });
+      return NextResponse.json(
+        { message: "Username and password are required" },
+        { status: 400 },
+      );
     }
 
     // Find the staff account by username
     // Select only existing columns
-    const query = 'SELECT username, password, employee_id FROM StaffAccount WHERE username = ?';
-    console.log(`[Login] Attempting login for user: ${username} in mode: ${getCurrentDeploymentMode()}`);
-    
+    const query =
+      "SELECT username, password, employee_id FROM StaffAccount WHERE username = ?";
+    console.log(
+      `[Login] Attempting login for user: ${username} in mode: ${getCurrentDeploymentMode()}`,
+    );
+
     const users = await executeQuery<any[]>(query, [username]);
-    console.log(`[Login] Query result:`, users);
 
     if (users.length === 0) {
       console.log(`[Login] User not found: ${username}`);
-      return NextResponse.json({ message: 'Invalid username or password' }, { status: 401 }); // User not found
+      return NextResponse.json(
+        { message: "Invalid username or password" },
+        { status: 401 },
+      ); // User not found
     }
 
     const user = users[0];
 
     // --- Password Verification ---
-    // Check the deployment mode
-    const deploymentMode = getCurrentDeploymentMode();
-    
+
     let passwordMatch = false;
-    
+
     // Check if the password is hashed (bcrypt passwords start with $2a$ or $2b$)
-    const isPasswordHashed = user.password.startsWith('$2a$') || user.password.startsWith('$2b$');
-    
-    if (deploymentMode === 'demo' || !isPasswordHashed) {
-      // In demo mode or if password is plaintext, compare directly
+    const isPasswordHashed =
+      user.password.startsWith("$2a$") || user.password.startsWith("$2b$");
+
+    if (!isPasswordHashed) {
+      // Sample demo accounts retain plaintext passwords; seeded accounts use bcrypt.
       passwordMatch = password === user.password;
     } else {
       // If password is hashed, use bcrypt
@@ -45,14 +52,18 @@ export async function POST(req: NextRequest) {
 
     if (!passwordMatch) {
       // Passwords don't match
-      return NextResponse.json({ message: 'Invalid username or password' }, { status: 401 });
+      return NextResponse.json(
+        { message: "Invalid username or password" },
+        { status: 401 },
+      );
     }
     // --- End Password Verification ---
 
     // --- Session/Token Generation ---
     // IMPORTANT: Use a strong, secret key stored securely (e.g., environment variable)
-    const JWT_SECRET = process.env.JWT_SECRET || 'YOUR_VERY_SECRET_KEY_REPLACE_ME'; // Replace with env var
-    const expiresIn = '1h'; // Token expiration time
+    const JWT_SECRET =
+      process.env.JWT_SECRET || "YOUR_VERY_SECRET_KEY_REPLACE_ME"; // Replace with env var
+    const expiresIn = "1h";
 
     const payload = {
       username: user.username,
@@ -61,26 +72,35 @@ export async function POST(req: NextRequest) {
     };
 
     // Sign the token
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn });
+    const token = await new SignJWT(payload)
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime(expiresIn)
+      .sign(new TextEncoder().encode(JWT_SECRET));
 
     // Prepare response
     const { password: _, ...userInfo } = user; // Exclude password from response data
-    const response = NextResponse.json({ message: 'Login successful', user: userInfo }, { status: 200 });
+    const response = NextResponse.json(
+      { message: "Login successful", user: userInfo },
+      { status: 200 },
+    );
 
     // Set the JWT as an HTTP-only cookie
-    response.cookies.set('authToken', token, {
+    response.cookies.set("authToken", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV !== 'development', // Use secure cookies in production
-      sameSite: 'strict', // Prevent CSRF
-      path: '/', // Cookie available across the site
+      secure: process.env.NODE_ENV !== "development", // Use secure cookies in production
+      sameSite: "strict", // Prevent CSRF
+      path: "/", // Cookie available across the site
       maxAge: 60 * 60, // 1 hour in seconds (matches token expiry)
     });
     // --- End Session/Token Generation ---
 
     return response;
-
   } catch (error) {
-    console.error('Login API error:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error("Login API error:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

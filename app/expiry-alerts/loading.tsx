@@ -8,7 +8,7 @@ export default function ExpiryAlertsLoading() {
     <DashboardShell>
       <DashboardHeader
         heading="Expiry Alerts"
-        description="Monitor and manage medicines approaching expiration dates"
+        text="Monitor and manage medicines approaching expiration dates"
       />
       <div className="grid gap-4">
         <div className="flex items-center gap-4">
@@ -19,9 +19,11 @@ export default function ExpiryAlertsLoading() {
           <div className="p-6">
             <Skeleton className="h-8 w-full mb-4" />
             <div className="space-y-2">
-              {Array(5).fill(null).map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
+              {Array(5)
+                .fill(null)
+                .map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
             </div>
           </div>
         </Card>

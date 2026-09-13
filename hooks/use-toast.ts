@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
-export type ToastType = 'default' | 'destructive' | 'success' | 'warning' | 'info';
+export type ToastType =
+  "default" | "destructive" | "success" | "warning" | "info";
 
 export interface Toast {
   id: string;
@@ -23,8 +24,8 @@ let listeners: Function[] = [];
 
 const addToast = (toast: Toast) => {
   toasts.push(toast);
-  listeners.forEach(listener => listener([...toasts]));
-  
+  listeners.forEach((listener) => listener([...toasts]));
+
   // Auto dismiss after duration
   if (toast.duration) {
     setTimeout(() => {
@@ -34,37 +35,37 @@ const addToast = (toast: Toast) => {
 };
 
 const dismissToast = (id: string) => {
-  const index = toasts.findIndex(t => t.id === id);
+  const index = toasts.findIndex((t) => t.id === id);
   if (index !== -1) {
     toasts.splice(index, 1);
-    listeners.forEach(listener => listener([...toasts]));
+    listeners.forEach((listener) => listener([...toasts]));
   }
 };
 
 export function useToast() {
   const [toastList, setToastList] = useState<Toast[]>(toasts);
-  
+
   useEffect(() => {
     listeners.push(setToastList);
-    
+
     return () => {
-      listeners = listeners.filter(listener => listener !== setToastList);
+      listeners = listeners.filter((listener) => listener !== setToastList);
     };
   }, []);
-  
-  const toast = (options: ToastOptions) => {
+
+  const toast = useCallback((options: ToastOptions) => {
     const id = Math.random().toString(36).substring(2, 9);
     const newToast: Toast = {
       id,
       title: options.title,
       description: options.description,
-      variant: options.variant || 'default',
+      variant: options.variant || "default",
       duration: options.duration || 5000,
     };
-    
+
     addToast(newToast);
     return id;
-  };
-  
+  }, []);
+
   return { toast, toasts: toastList, dismiss: dismissToast };
 }

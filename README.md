@@ -34,28 +34,32 @@ MedInv is a comprehensive web application for managing medical inventory, patien
 MedInv features a comprehensive responsive web interface that provides an optimal viewing experience across all devices:
 
 ### Mobile Optimization
+
 - **Touch-Friendly Controls**: All interactive elements meet WCAG 2.1 guidelines with minimum 44x44px tap targets
-- **Hamburger Menu**: Collapsible sidebar with smooth slide-in animation and overlay
+- **Mobile Navigation**: Searchable command menu with every workspace page
 - **Responsive Tables**: Horizontal scroll with touch-optimized scrolling for data tables
 - **Adaptive Typography**: Readable font sizes (16px minimum) without requiring zoom
 - **Optimized Layouts**: Content reflows naturally on smaller screens
 
 ### Tablet & Desktop Features
-- **Auto-Expanding Sidebar**: Hover to expand on desktop, manual toggle on tablet
+
+- **Floating Navigation**: Compact top navigation with a keyboard-accessible command menu (⌘K / Ctrl+K)
 - **Flexible Grid Layouts**: Automatically adjusts columns based on screen size
 - **Enhanced Interactions**: Hover states and mouse-based interactions preserved
-- **Maximum Content Width**: Centered layout on large screens (1280px max)
+- **Maximum Content Width**: Centered workspace content (1120px max)
 
 ### Progressive Enhancement
+
 - Core functionality works universally across all devices
 - Enhanced features activate based on device capabilities
 - CSS-based responsive design (no JavaScript required for layout)
 - Hardware-accelerated animations for smooth performance
 
 ### Breakpoint System
-- **Mobile**: < 768px (1 column layouts, stacked navigation)
-- **Tablet**: 768px - 1023px (2 column layouts, collapsible sidebar)
-- **Desktop**: ≥ 1024px (3-4 column layouts, full sidebar)
+
+- **Mobile**: < 768px (stacked layouts and a command menu)
+- **Tablet**: 768px–850px (compact navigation and adaptive content)
+- **Desktop**: > 850px (floating top navigation)
 
 ## Deployment Options
 
@@ -63,38 +67,49 @@ MedInv can be deployed in three main configurations:
 
 1. **Local Development Mode**: Uses a local MySQL database
 2. **Vercel Deployment with PlanetScale**: Uses PlanetScale or other cloud MySQL providers
-3. **Demo Mode**: Uses an in-memory database that resets on page refresh, requiring no database setup
+3. **Demo Mode**: Uses process-local in-memory data, requiring no database setup. Changes survive page refreshes and reset when the server restarts.
 
 The application automatically detects the environment and connects to the appropriate database based on environment variables.
 
 ### Demo Mode
 
 Demo mode is ideal for:
+
 - Testing the application without setting up a database
 - Free-tier deployments
 - Showcasing the application to clients or users
 
 In demo mode:
-- All data is stored in memory and resets on page refresh
+
+- Data is shared across routes in the server process and survives page refreshes. Restarting the server resets sample data; this is not durable production storage.
 - The application uses a predefined set of sample data
 - No database connection is required
 - Authentication is simplified for demonstration purposes
 
 To enable demo mode, set the following environment variables:
+
 ```
 DEPLOYMENT_MODE=demo
 NEXT_PUBLIC_DEPLOYMENT_MODE=demo
 ```
 
+### Live UI preview
+
+Run `npm run preview` to launch the database-free, hot-reloading preview at `http://localhost:3000`. On macOS, open it with `open -a Safari http://localhost:3000`. Use **Explore the demo** on the sign-in page, or sign in with `admin` / `admin123`. `PORT=3001 npm run preview` selects a different port.
+
+The interface uses Geist and Instrument Serif. The scrollable login page contains project details and a real demo workspace image, with Fetch's grass/cloud scenery and scroll-driven dripping shader confined to the hero. The authenticated workspace uses compact floating navigation. Attribution and licenses are in `public/third-party-notices.txt`.
+
 ## Local Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd MedInv
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    # or
@@ -109,6 +124,7 @@ NEXT_PUBLIC_DEPLOYMENT_MODE=demo
 4. **Configure environment variables**
    - Copy `.env.example` to `.env.local`
    - Update the database credentials to match your local MySQL setup
+
    ```
    DB_HOST=localhost
    DB_USER=root
@@ -121,6 +137,7 @@ NEXT_PUBLIC_DEPLOYMENT_MODE=demo
    - Use the SQL commands in `db-schema.md` to populate initial test data
 
 6. **Start the development server**
+
    ```bash
    npm run dev
    # or
@@ -148,19 +165,19 @@ The application is designed to work with local MySQL, cloud database providers l
    - Set `DEPLOYMENT_MODE=demo` in your .env file
    - No database configuration needed
    - Perfect for quick demonstrations or testing
-   - Data resets when the page refreshes
+   - Data persists within one server process; restarting the server resets it. Separate serverless instances do not share this data.
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|-------------|-------------|---------|
-| DEPLOYMENT_MODE | `local` for local DB, `planetscale` for cloud DB, `demo` for in-memory DB | `local` |
-| DB_HOST | MySQL host for local deployment | `localhost` |
-| DB_USER | MySQL username for local deployment | `root` |
-| DB_PASSWORD | MySQL password for local deployment | `` |
-| DB_NAME | MySQL database name for local deployment | `test2` |
-| DB_PORT | MySQL port for local deployment | `3306` |
-| DATABASE_URL | Full connection URL for PlanetScale/cloud DB | - |
+| Variable        | Description                                                               | Default     |
+| --------------- | ------------------------------------------------------------------------- | ----------- |
+| DEPLOYMENT_MODE | `local` for local DB, `planetscale` for cloud DB, `demo` for in-memory DB | `local`     |
+| DB_HOST         | MySQL host for local deployment                                           | `localhost` |
+| DB_USER         | MySQL username for local deployment                                       | `root`      |
+| DB_PASSWORD     | MySQL password for local deployment                                       | ``          |
+| DB_NAME         | MySQL database name for local deployment                                  | `test2`     |
+| DB_PORT         | MySQL port for local deployment                                           | `3306`      |
+| DATABASE_URL    | Full connection URL for PlanetScale/cloud DB                              | -           |
 
 ## Project Structure
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,8 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Package } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { AlertCircle, Package } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // Interfaces
 interface Medicine {
@@ -29,20 +29,13 @@ interface Medicine {
   name: string;
 }
 
-interface Supplier {
-  supplier_id: number;
-  name: string;
-}
-
 export function AddInventoryForm() {
   const router = useRouter();
   // Form state
   const [medicines, setMedicines] = useState<Medicine[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [selectedMedicine, setSelectedMedicine] = useState<string>('');
-  const [selectedSupplier, setSelectedSupplier] = useState<string>('');
-  const [quantity, setQuantity] = useState<string>('');
-  
+  const [selectedMedicine, setSelectedMedicine] = useState<string>("");
+  const [quantity, setQuantity] = useState<string>("");
+
   // UI state
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,29 +47,22 @@ export function AddInventoryForm() {
     fetchFormData();
   }, []);
 
-  // Fetch medicines and suppliers
+  // Load the medicine catalogue.
   const fetchFormData = async () => {
     setIsLoadingData(true);
     try {
       // Fetch medicines
-      const medResponse = await fetch('/api/medicines');
+      const medResponse = await fetch("/api/medicines");
       if (!medResponse.ok) {
-        throw new Error('Failed to fetch medicines');
+        throw new Error("Failed to fetch medicines");
       }
       const medData = await medResponse.json();
       setMedicines(medData);
-      
-      // Fetch suppliers
-      const supResponse = await fetch('/api/suppliers');
-      if (!supResponse.ok) {
-        throw new Error('Failed to fetch suppliers');
-      }
-      const supData = await supResponse.json();
-      setSuppliers(supData);
-      
     } catch (err) {
       console.error("Error fetching form data:", err);
-      setError(err instanceof Error ? err.message : 'Failed to load required data');
+      setError(
+        err instanceof Error ? err.message : "Failed to load required data",
+      );
     } finally {
       setIsLoadingData(false);
     }
@@ -87,14 +73,14 @@ export function AddInventoryForm() {
     setError(null);
 
     // Validate form
-    if (!selectedMedicine || !selectedSupplier || !quantity) {
+    if (!selectedMedicine || !quantity) {
       setError("Please fill in all required fields.");
       return;
     }
-    
-    const quantityNum = parseInt(quantity);
-    if (isNaN(quantityNum) || quantityNum < 1) {
-      setError(`Quantity must be 1 or more.`);
+
+    const quantityNum = Number(quantity);
+    if (!Number.isSafeInteger(quantityNum) || quantityNum < 1) {
+      setError("Quantity must be a whole number of 1 or more.");
       return;
     }
 
@@ -103,44 +89,42 @@ export function AddInventoryForm() {
     // Prepare payload
     const payload = {
       medicine_id: parseInt(selectedMedicine),
-      supplier_id: parseInt(selectedSupplier),
-      quantity: quantityNum
+      quantity: quantityNum,
     };
 
     try {
       // Submit form data
-      const response = await fetch('/api/inventory', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+      const response = await fetch("/api/inventory", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       // Check for API errors
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add inventory item');
+        throw new Error(errorData.error || "Failed to add inventory item");
       }
 
       // Handle success
-      toast({ 
-        title: "Success", 
-        description: "Inventory item added successfully." 
+      toast({
+        title: "Success",
+        description: "Inventory item added successfully.",
       });
-      
-      // Navigate back to inventory list
-      router.push('/inventory');
 
+      // Navigate back to inventory list
+      router.push("/inventory");
     } catch (err) {
       // Handle errors
-      const message = err instanceof Error ? err.message : 'Failed to add item';
+      const message = err instanceof Error ? err.message : "Failed to add item";
       setError(message);
-      toast({ 
-        title: "Error", 
-        description: message, 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -154,25 +138,27 @@ export function AddInventoryForm() {
           <Package className="h-5 w-5" />
           <CardTitle>Add New Inventory Item</CardTitle>
         </div>
-        <CardDescription>
-          Enter the inventory details below
-        </CardDescription>
+        <CardDescription>Enter the inventory details below</CardDescription>
       </CardHeader>
-      
+
       <CardContent>
         {isLoadingData ? (
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <form id="add-inventory-form" onSubmit={handleSubmit} className="space-y-6">
+          <form
+            id="add-inventory-form"
+            onSubmit={handleSubmit}
+            className="space-y-6"
+          >
             {/* Medicine Select */}
             <div className="space-y-2">
               <Label htmlFor="inv-medicine">
                 Medicine <span className="text-destructive">*</span>
               </Label>
-              <Select 
-                value={selectedMedicine} 
+              <Select
+                value={selectedMedicine}
                 onValueChange={setSelectedMedicine}
               >
                 <SelectTrigger id="inv-medicine">
@@ -181,53 +167,22 @@ export function AddInventoryForm() {
                 <SelectContent>
                   {medicines.length > 0 ? (
                     medicines.map((med) => (
-                      <SelectItem 
-                        key={med.medicine_id} 
+                      <SelectItem
+                        key={med.medicine_id}
                         value={String(med.medicine_id)}
                       >
                         {med.name}
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="unavailable" disabled>
                       No medicines available
                     </SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
-            
-            {/* Supplier Select */}
-            <div className="space-y-2">
-              <Label htmlFor="inv-supplier">
-                Supplier <span className="text-destructive">*</span>
-              </Label>
-              <Select 
-                value={selectedSupplier} 
-                onValueChange={setSelectedSupplier}
-              >
-                <SelectTrigger id="inv-supplier">
-                  <SelectValue placeholder="Select Supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.length > 0 ? (
-                    suppliers.map((sup) => (
-                      <SelectItem 
-                        key={sup.supplier_id} 
-                        value={String(sup.supplier_id)}
-                      >
-                        {sup.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="" disabled>
-                      No suppliers available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            
+
             {/* Quantity Input */}
             <div className="space-y-2">
               <Label htmlFor="inv-quantity">
@@ -242,7 +197,7 @@ export function AddInventoryForm() {
                 placeholder="Enter quantity"
               />
             </div>
-            
+
             {/* Error message */}
             {error && (
               <div className="p-3 rounded bg-destructive/10 text-destructive flex items-center gap-2">
@@ -253,17 +208,17 @@ export function AddInventoryForm() {
           </form>
         )}
       </CardContent>
-      
+
       <CardFooter className="flex justify-between">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => router.push('/inventory')}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.push("/inventory")}
           disabled={isSubmitting}
         >
           Cancel
         </Button>
-        <Button 
+        <Button
           type="submit"
           form="add-inventory-form"
           disabled={isSubmitting || isLoadingData}
@@ -274,7 +229,7 @@ export function AddInventoryForm() {
               <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
             </>
           ) : (
-            'Add Item'
+            "Add Item"
           )}
         </Button>
       </CardFooter>
