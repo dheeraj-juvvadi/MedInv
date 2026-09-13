@@ -7,6 +7,7 @@
   "outputDirectory": ".next",
   "env": {
     "DEPLOYMENT_MODE": "demo",
+    "NEXT_PUBLIC_DEPLOYMENT_MODE": "demo",
     "NODE_ENV": "production"
   }
 }
